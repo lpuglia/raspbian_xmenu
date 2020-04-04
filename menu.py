@@ -2,16 +2,15 @@ import os
 import sys
 import time
 
-if sys.argv[1]=='bashrc':
+if 'DISPLAY' not in os.environ: os.environ['DISPLAY'] = ':0'
+
+if len(sys.argv) == 1: # no arguments startup option
     if os.path.isfile('/tmp/status'): sys.exit()
     else: os.system('printf _kodi > /tmp/status')
+    sys.argv.append('loop')
+elif sys.argv[1]=='loop': os.system('printf menu > /tmp/status')
 
-if sys.argv[1]=='loop': os.system('printf menu > /tmp/status')
-
-if 'DISPLAY' not in os.environ:
-    os.environ['DISPLAY'] = ':0'
-
-if sys.argv[1]=='bashrc' or sys.argv[1]=='loop':
+if sys.argv[1]=='loop':
 
     from threading import Thread
     import subprocess
@@ -49,7 +48,7 @@ if sys.argv[1]=='bashrc' or sys.argv[1]=='loop':
 
     def threaded_function():
         proc = subprocess.Popen(['cec-client'], stdout=subprocess.PIPE)
-        prev_time = time.time()
+        now = prev_time = time.time()
         speed=20
         while proc.poll() is None:
             line = str(proc.stdout.readline())
@@ -57,8 +56,7 @@ if sys.argv[1]=='bashrc' or sys.argv[1]=='loop':
             if 'pressed' in line and 'duration' in line:
                 key = line.split('pressed: ')[1].split(' ')[0]
                 if key in "left right up down": now = time.time()
-                if now-prev_time<0.5: speed+=20
-                else: speed=20
+                speed = speed+20 if now-prev_time<0.5 else 20
                 if program=='menu': cec_menu(key)
                 elif program in ' '.join(['prime', 'spotify', 'netflix', 'disney']): cec_netflix(key, speed)
                 elif program=='retropie': cec_retropie(key)
@@ -94,11 +92,8 @@ elif sys.argv[1] == 'menu':
 
     os.system('xrandr -s 1280x720 -r 60')
 
-    def quit_(event):
-        os.system('killall python3')
-
     def write_status(msg):
-        os.system('printf ' + msg + ' > /tmp/status')
+        os.system('printf "' + msg + '" > /tmp/status')
         root.destroy()
 
     def toggle_deluge(button):
@@ -111,14 +106,9 @@ elif sys.argv[1] == 'menu':
         button.configure(image = to_use)
 
     def new_button(frame, pic, func, padx=5, pady=(0,45)):
-        to_return = Button( frame,
-                            command = func,
-                            image = pic,
+        to_return = Button( frame, command = func, image = pic, relief='flat',
                             width = 100, height = 100, bg='white',
-                            highlightthickness=3, highlightbackground='white',
-                            relief='flat'
-                         )
-        to_return.image = pic
+                            highlightthickness=3, highlightbackground='white')
         to_return.pack(padx=padx, pady=pady, side='left')
         return to_return
 
@@ -136,7 +126,7 @@ elif sys.argv[1] == 'menu':
             frame.focus_force()
 
         def launch_vpn(country_id):
-            os.system('sudo killall -s 15 openvpn  > /dev/null 2>&1')
+            os.system('sudo killall -s 15 openvpn > /dev/null 2>&1')
             while ovpn_is_connected(): pass # wait for openvpn to close
             button.configure(image = nordvpn_gif)
             if country_id == 0:
@@ -163,7 +153,7 @@ elif sys.argv[1] == 'menu':
         
     #root.config(cursor='arrow')
     root.geometry('1281x721')
-    root.bind('<Alt-F4>', quit_)
+    root.bind('<Alt-F4>', lambda event: os.system('killall -s 15 python3'))
 
     background_label = Label(root, image=background_gif)
     background_label.place(x=0, y=0, relwidth=1, relheight=1)
@@ -173,33 +163,22 @@ elif sys.argv[1] == 'menu':
 
     new_button(frame, desktop_gif, lambda: write_status('_startx'))
     new_button(frame, kodi_gif, lambda: write_status('_kodi'))
-    new_button(frame, netflix, lambda: write_status('netflix'))
-    new_button(frame, disney_gif, lambda: write_status('disney'))
-    new_button(frame, prime_gif, lambda: write_status('prime'))
-    new_button(frame, spotify_gif, lambda: write_status('spotify'))
+    new_button(frame, netflix, lambda: write_status('chrome www.netflix.com'))
+    new_button(frame, disney_gif, lambda: write_status('chrome www.disneyplus.com'))
+    new_button(frame, prime_gif, lambda: write_status('chrome www.primevideo.com'))
+    new_button(frame, spotify_gif, lambda: write_status('chrome open.spotify.com'))
     new_button(frame, retropie_gif, lambda: write_status('_emulationstation'))
-
-    proxy_button = new_button(frame, nordvpn_on_gif if os.popen('pidof openvpn').read().strip().isdigit() else nordvpn_gif,
-                              lambda: vpn_window(frame, proxy_button))
-    deluge_button = new_button(frame, deluge_on_gif if os.popen('pidof /usr/bin/deluge-web -x').read().strip().isdigit() else deluge_off_gif,
-                               lambda: toggle_deluge(deluge_button))
-
+    proxy_button = new_button(frame, nordvpn_on_gif if os.popen('pidof openvpn').read().strip().isdigit() else nordvpn_gif, lambda: vpn_window(frame, proxy_button))
+    deluge_button = new_button(frame, deluge_on_gif if os.popen('pidof /usr/bin/deluge-web -x').read().strip().isdigit() else deluge_off_gif, lambda: toggle_deluge(deluge_button))
     root.mainloop()
 
-
-if sys.argv[1] in ' '.join(['prime', 'spotify', 'netflix-italy', 'netflix-usa', 'disney']):
+if sys.argv[1] == 'chrome':
 
     user_agent = "'Mozilla/5.0 (X11; CrOS armv7l 11895.95.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.125 Safari/537.36'"
-
-    if 'spotify' in sys.argv[1]:   url = "https://open.spotify.com/"
-    elif 'netflix' in sys.argv[1]: url = "https://www.netflix.com/"
-    elif 'disney' in sys.argv[1]:  url = "https://www.disneyplus.com/"
-    elif 'prime' in sys.argv[1]:  url = "https://www.primevideo.com/"
-
     os.system("xrandr -s 1280x720 -r 60")
     os.system('xdotool mousemove 640 360')
     os.system("compton &")
-    os.system(f"chromium-browser --kiosk --noerrdialogs --disable-infobars --window-position=0,0 --window-size=1281,721 --user-agent={user_agent} {url}")
+    os.system(f"chromium-browser --kiosk --noerrdialogs --disable-infobars --window-position=0,0 --window-size=1281,721 --user-agent={user_agent} {sys.argv[2]}")
 
 elif sys.argv[1] == '':
     pass
