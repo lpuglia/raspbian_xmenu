@@ -81,7 +81,6 @@ elif sys.argv[1] == 'menu':
     from tkinter import *
     import base64
     import pygame
-    from time import sleep
     root = Tk()
     pygame.mixer.init(22050, -16, 1, 1024)
     
@@ -108,17 +107,18 @@ elif sys.argv[1] == 'menu':
     select_sound.set_volume(0.3)
 
     def write_status(msg):
-        select_sound.play(), sleep(0.2)
+        select_sound.play(), time.sleep(0.2)
         os.system('printf "' + msg + '" > /tmp/status')
         root.destroy()
 
-    def new_button(frame, pic, func, padx=5, pady=(0,45)):
-        to_return = Button( frame, command = func, image = pic, relief='flat', activebackground=bg_color,
+    def new_button(frame, pic, func, focus_flag=False, padx=5, pady=(0,45)):
+        button = Button( frame, command = func, image = pic, relief='flat', activebackground=bg_color,
                             width = 100, height = 100, bg=bg_color, highlightcolor='white',
                             highlightthickness=3, highlightbackground=bg_color)
-        to_return.bind('<FocusIn>', lambda event: next_sound.play())
-        to_return.pack(padx=padx, pady=pady, side='left')
-        return to_return
+        if focus_flag: button.focus_set()
+        button.bind('<FocusIn>', lambda event: next_sound.play())
+        button.pack(padx=padx, pady=pady, side='left')
+        return button
 
     def toggle_deluge(button):
         select_sound.play()
@@ -132,8 +132,8 @@ elif sys.argv[1] == 'menu':
     def vpn_window(frame, button):
         select_sound.play()
         t = Toplevel(frame, bg=bg_color)
-        t.overrideredirect(1)
-        t.focus_force()
+        # t.overrideredirect(1)
+        # t.focus_force()
         t.geometry(f'360x120+{button.winfo_rootx()-125}+{button.winfo_rooty()-120}')
 
         def ovpn_is_connected():
@@ -142,7 +142,7 @@ elif sys.argv[1] == 'menu':
         def close_submenu(event):
             select_sound.play()
             t.destroy()
-            frame.focus_force()
+            # frame.focus_force()
             button.focus_set()
 
         def launch_vpn(country_id):
@@ -164,12 +164,8 @@ elif sys.argv[1] == 'menu':
         t.bind('<Escape>', close_submenu)
         new_button(t, nordvpn_gif['us'], lambda: launch_vpn(228), pady=0) # United States
         new_button(t, nordvpn_gif['it'], lambda: launch_vpn(106), pady=0) # Italy
-        new_button(t, nordvpn_gif[''], lambda: launch_vpn(0), pady=0).focus_set() # stop VPN
+        new_button(t, nordvpn_gif[''], lambda: launch_vpn(0), focus_flag=True, pady=0) # stop VPN
 
-    def check_focus(button, flag):
-        if flag: button.focus_set()
-
-    # root.config(cursor='arrow')
     root.configure(bg=bg_color)
     root.geometry('1281x721')
     root.bind('<Alt-F4>', lambda event: write_status('exit'))
@@ -180,13 +176,13 @@ elif sys.argv[1] == 'menu':
     frame = Frame(root, bg=bg_color)
     frame.pack(side='bottom')
 
-    check_focus(new_button(frame, desktop_gif, lambda: write_status('startx')), len(sys.argv)==2 or sys.argv[2] in 'menu startx exit')
-    check_focus(new_button(frame, kodi_gif, lambda: write_status('kodi')), len(sys.argv)==3 and sys.argv[2] == 'kodi')
-    check_focus(new_button(frame, netflix, lambda: write_status('chrome www.netflix.com')), len(sys.argv)==4 and 'netflix' in sys.argv[3])
-    check_focus(new_button(frame, disney_gif, lambda: write_status('chrome www.disneyplus.com')), len(sys.argv)==4 and 'disneyplus' in sys.argv[3])
-    check_focus(new_button(frame, prime_gif, lambda: write_status('chrome www.primevideo.com')), len(sys.argv)==4 and 'primevideo' in sys.argv[3])
-    check_focus(new_button(frame, spotify_gif, lambda: write_status('chrome open.spotify.com')), len(sys.argv)==4 and 'spotify' in sys.argv[3])
-    check_focus(new_button(frame, retropie_gif, lambda: write_status('emulationstation')), len(sys.argv)==3 and sys.argv[2] == 'emulationstation')
+    new_button(frame, desktop_gif, lambda: write_status('startx'), focus_flag = len(sys.argv)==2 or sys.argv[2] in 'menu startx exit')
+    new_button(frame, kodi_gif, lambda: write_status('kodi'), focus_flag = len(sys.argv)==3 and sys.argv[2] == 'kodi')
+    new_button(frame, netflix, lambda: write_status('chrome www.netflix.com'), focus_flag = len(sys.argv)==4 and 'netflix' in sys.argv[3])
+    new_button(frame, disney_gif, lambda: write_status('chrome www.disneyplus.com'), focus_flag = len(sys.argv)==4 and 'disneyplus' in sys.argv[3])
+    new_button(frame, prime_gif, lambda: write_status('chrome www.primevideo.com'), focus_flag = len(sys.argv)==4 and 'primevideo' in sys.argv[3])
+    new_button(frame, spotify_gif, lambda: write_status('chrome open.spotify.com'), focus_flag = len(sys.argv)==4 and 'spotify' in sys.argv[3])
+    new_button(frame, retropie_gif, lambda: write_status('emulationstation'), focus_flag = len(sys.argv)==3 and sys.argv[2] == 'emulationstation')
 
     proxy_button = new_button(frame, nordvpn_gif['' if os.system('pidof openvpn')==256 else os.popen('cat /proc/$(pidof openvpn)/cmdline').read().split('/tmp/')[-1].split('.nordvpn.')[0][:2]], lambda: vpn_window(frame, proxy_button))
     deluge_button = new_button(frame, deluge_gif[os.popen('pidof /usr/bin/deluge-web -x').read().strip().isdigit()], lambda: toggle_deluge(deluge_button))
@@ -200,6 +196,22 @@ if sys.argv[1] == 'chrome':
     os.system("xrandr -s 1280x720 -r 60")
     os.system('xdotool mousemove 640 360')
     os.system("compton &")
+
+    from tkinter import *
+    from threading import Thread
+
+    def curtain(): #to avoid screen white flashing
+        root = Tk()
+        root.configure(bg='black')
+        root.geometry('1281x721')
+        def lift_curtain():
+            cpu_time = os.popen('ps -eo time,command | grep -m 1 [t]ype=renderer').read().strip()[6:8]
+            if cpu_time.isdigit() and int(cpu_time)>2: root.destroy() # if has spent at least 2 second on the page, it is ready to be shown
+            else: root.lift(), root.after(1, lift_curtain)
+        root.after(1, lift_curtain)
+        root.mainloop()
+
+    Thread(target = curtain).start()
     os.system(f"chromium-browser --kiosk --noerrdialogs --enable-features=OverlayScrollbar --disable-infobars --window-position=0,0 --window-size=1281,721 --simulate-critical-update --user-agent={user_agent} {sys.argv[2]}")
 
 elif sys.argv[1] == '':
