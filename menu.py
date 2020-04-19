@@ -83,8 +83,7 @@ elif sys.argv[1] == 'menu':
     import pygame
     from time import sleep
     root = Tk()
-    pygame.mixer.pre_init(22050, -16, 1, 1024)
-    pygame.mixer.init()
+    pygame.mixer.init(22050, -16, 1, 1024)
     
     os.system('xrandr -s 1280x720 -r 60')
     bg_color = '#0A1212'
