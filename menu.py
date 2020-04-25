@@ -195,24 +195,54 @@ if sys.argv[1] == 'chrome':
     user_agent = "'Mozilla/5.0 (X11; CrOS armv7l 11895.95.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.125 Safari/537.36'"
     os.system("xrandr -s 1280x720 -r 60")
     os.system('xdotool mousemove 640 360')
-    os.system("compton &")
+    #os.system("compton &")
 
     from tkinter import *
     from threading import Thread
-
-    def curtain(): #to avoid screen white flashing
+    from math import cos, sin, pi, ceil
+    
+    def splash_screen():
         root = Tk()
         root.configure(bg='black')
+        root.bind('<Alt-F4>', lambda event: os.system('killall -s 15 Xorg'))
         root.geometry('1281x721')
-        def lift_curtain():
+
+        palette = {
+            'www.netflix.com' : [0xe, 0x1, 0x1],
+            'www.disneyplus.com' : [0x2, 0x5, 0x9],
+            'www.primevideo.com' : [0x0, 0x8, 0xA],
+            'open.spotify.com' : [0x2, 0xc, 0x5]
+        }
+
+        canvas = Canvas(root, width=200, height=200, highlightthickness=0, bg='black')
+        canvas.place(anchor="c", relx=.5, rely=.5)
+
+        led = 10
+        led_off = 3
+        create_circle = lambda x, y, r: [x - r, y - r, x + r, y + r]
+        shade = lambda i: [str(hex(ceil(i*palette[sys.argv[2]][chn]/(led-led_off)))[2:]) for chn in [0,1,2]]
+
+        clrs = ['#000']*led_off+['#'+ ''.join(shade(i)) for i in range(led-led_off)]
+
+        for i in range(led):
+            x = 100 + 50 * cos(i/led*pi*2)
+            y = 100 + 50 * sin(i/led*pi*2)
+            canvas.create_oval(*create_circle(x, y, 12), fill=clrs[i], width=2)
+        
+        def splash():
+            idx = int(time.time()*13)%led
+            for i in range(led): canvas.itemconfigure((idx+i)%led+1, fill=clrs[i])
             cpu_time = os.popen('ps -eo time,command | grep -m 1 [t]ype=renderer').read().strip()[6:8]
-            if cpu_time.isdigit() and int(cpu_time)>2: root.destroy() # if has spent at least 2 second on the page, it is ready to be shown
-            else: root.lift(), root.after(1, lift_curtain)
-        root.after(1, lift_curtain)
+            if cpu_time.isdigit() and int(cpu_time)>2:
+                os.system('xdotool windowmove $(xdotool search --onlyvisible --class Chromium) 0 0')
+                root.destroy()
+            else:  root.after(1, splash)
+        root.after(1, splash)
         root.mainloop()
 
-    Thread(target = curtain).start()
-    os.system(f"chromium-browser --kiosk --noerrdialogs --enable-features=OverlayScrollbar --disable-infobars --window-position=0,0 --window-size=1281,721 --simulate-critical-update --user-agent={user_agent} {sys.argv[2]}")
+    Thread(target = splash_screen).start()
+    os.system(f"chromium-browser --kiosk --noerrdialogs --enable-features=OverlayScrollbar --disable-infobars --window-position=1280,0 --window-size=1281,721 --simulate-critical-update --user-agent={user_agent} {sys.argv[2]}")
+
 
 elif sys.argv[1] == '':
     pass
