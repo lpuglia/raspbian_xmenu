@@ -17,21 +17,22 @@ if sys.argv[1]=='loop':
     import subprocess
 
     def cec_chrome(key, speed):
-        if key == 'up':
-            os.system(f'eval $(xdotool getmouselocation --shell); if [ "$Y" -lt 50 ]; \
-                      then xdotool key Up; else xdotool mousemove_relative -- 0 -{speed}; fi')
-        elif key == 'left': os.system(f'xdotool mousemove_relative -- -{speed} 0')
-        elif key == 'down':
-            os.system(f'eval $(xdotool getmouselocation --shell); if [ "$Y" -gt 670 ]; \
-                      then xdotool key Down; else xdotool mousemove_relative -- 0 {speed}; fi')
-        elif key == 'right': os.system(f'xdotool mousemove_relative -- {speed} 0')
-        elif key == 'select': os.system('xdotool click 1')
-        elif key == 'exit': os.system('killall -s 15 Xorg')
-        elif key == 'pause': os.system('xdotool key space')
-        elif key == 'play': os.system('xdotool key space')
-        elif key == 'stop': os.system('xdotool key F5')
-        elif key == 'rewind': os.system('xdotool key Left')
-        elif key == 'Fast': os.system('xdotool key Right')
+        if key == 'exit': os.system('killall -s 15 Xorg')
+        elif os.popen('pgrep -f "[s]h -c chromium-browser"').read().strip().isdigit(): #check if chromium is open before xdo stuff
+            if key == 'up':
+                os.system(f'eval $(xdotool getmouselocation --shell); if [ "$Y" -lt 50 ]; \
+                          then xdotool key Up; else xdotool mousemove_relative -- 0 -{speed}; fi')
+            elif key == 'left': os.system(f'xdotool mousemove_relative -- -{speed} 0')
+            elif key == 'down':
+                os.system(f'eval $(xdotool getmouselocation --shell); if [ "$Y" -gt 670 ]; \
+                          then xdotool key Down; else xdotool mousemove_relative -- 0 {speed}; fi')
+            elif key == 'right': os.system(f'xdotool mousemove_relative -- {speed} 0')
+            elif key == 'select': os.system('xdotool click 1')
+            elif key == 'pause': os.system('xdotool key space')
+            elif key == 'play': os.system('xdotool key space')
+            elif key == 'stop': os.system('xdotool key F5')
+            elif key == 'rewind': os.system('xdotool key Left')
+            elif key == 'Fast': os.system('xdotool key Right')
 
     def cec_retropie(key):
         if key=='exit':
@@ -40,14 +41,15 @@ if sys.argv[1]=='loop':
             else: os.system('killall -s 15 /opt/retropie/supplementary/emulationstation/emulationstation')
 
     def cec_menu(key):
-        if key == 'left':
-            os.system('xdotool key Shift+Tab')
-        elif key == 'right':
-            os.system('xdotool key Tab')
-        elif key == 'select':
-            os.system('xdotool key space')
-        elif key == 'exit':
-            os.system('xdotool key Escape')
+        if os.popen('pgrep -f "[s]h -c startx"').read().strip().isdigit(): #check if menu is displayed before xdo stuff
+            if key == 'left':
+                os.system('xdotool key Shift+Tab')
+            elif key == 'right':
+                os.system('xdotool key Tab')
+            elif key == 'select':
+                os.system('xdotool key space')
+            elif key == 'exit':
+                os.system('xdotool key Escape')
 
     def threaded_function():
         proc = subprocess.Popen(['cec-client'], stdout=subprocess.PIPE)
