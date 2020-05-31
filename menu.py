@@ -43,11 +43,11 @@ if sys.argv[1]=='loop':
     def cec_menu(key):
         if os.popen('pgrep -f "[s]h -c startx"').read().strip().isdigit(): #check if menu is displayed before xdo stuff
             if key == 'left':
-                os.system('xdotool key Shift+Tab')
+                os.system('xdotool key Left')
             elif key == 'right':
-                os.system('xdotool key Tab')
+                os.system('xdotool key Right')
             elif key == 'select':
-                os.system('xdotool key space')
+                os.system('xdotool key Return')
             elif key == 'exit':
                 os.system('xdotool key Escape')
 
@@ -173,6 +173,9 @@ elif sys.argv[1] == 'menu':
     root.configure(bg=bg_color)
     root.geometry('1281x721')
     root.bind('<Alt-F4>', lambda event: write_status('exit'))
+    root.bind_class("Button", "<Right>", lambda event: event.widget.tk_focusNext().focus())
+    root.bind_class("Button", "<Left>", lambda event: event.widget.tk_focusPrev().focus())
+    root.bind_class("Button", "<Return>", lambda event: event.widget.invoke())
 
     background_label = Label(root, bg=bg_color, image=background_gif, anchor='n')
     background_label.place(x=0, y=65, relwidth=1, relheight=1)
