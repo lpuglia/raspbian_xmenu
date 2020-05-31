@@ -2,11 +2,13 @@ import os
 import sys
 import time
 
+status_file = '/dev/shm/status'
+
 if 'DISPLAY' not in os.environ: os.environ['DISPLAY'] = ':0'
 
 if len(sys.argv) == 1: # boot time
-    if os.path.isfile('/tmp/status'): sys.exit()
-    else: os.system('touch /tmp/status')#; kodi')
+    if os.path.isfile(status_file): sys.exit()
+    else: os.system('touch ' + status_file)#; kodi')
     sys.argv.append('loop')
 
 if sys.argv[1]=='loop':
@@ -53,7 +55,7 @@ if sys.argv[1]=='loop':
         speed=20
         while proc.poll() is None:
             line = str(proc.stdout.readline())
-            program = open('/tmp/status').read()
+            program = open(status_file).read()
             if 'pressed' in line and 'duration' in line:
                 key = line.split('pressed: ')[1].split(' ')[0]
                 if key in "left right up down": now = time.time()
@@ -67,10 +69,10 @@ if sys.argv[1]=='loop':
     os.system('clear')
     cmd_tmplt = 'startx /usr/bin/python3 /home/pi/menu.py {} -- > /dev/null 2>&1'
     while True:
-        program = open('/tmp/status').read()
-        os.system('printf menu > /tmp/status')
+        program = open(status_file).read()
+        os.system('printf menu > ' + status_file)
         os.system(cmd_tmplt.format('menu ' + program))
-        program = open('/tmp/status').read()
+        program = open(status_file).read()
         if program == 'exit': break
         os.system(cmd_tmplt.format(program) if 'chrome' in program else program + ' > /dev/null 2>&1')
 
@@ -108,7 +110,7 @@ elif sys.argv[1] == 'menu':
 
     def write_status(msg):
         select_sound.play(), time.sleep(0.2)
-        os.system('printf "' + msg + '" > /tmp/status')
+        os.system('printf "' + msg + '" > ' + status_file)
         root.destroy()
 
     def new_button(frame, pic, func, focus_flag=False, padx=5, pady=(0,45)):
@@ -154,7 +156,7 @@ elif sys.argv[1] == 'menu':
                 # get lowest load server id
                 conf_file = os.popen(f'curl -s "https://api.nordvpn.com/v1/servers/recommendations?limit=1&filters%5Bcountry_id%5D={country_id}"').read().strip().split('hostname":"')[1].split('","load')[0]
                 os.system(f'wget -qP /tmp https://downloads.nordcdn.com/configs/files/ovpn_legacy/servers/{conf_file}.tcp443.ovpn') #download server configuration file for openvpn
-                os.system(f'sudo -b openvpn --config /tmp/{conf_file}.tcp443.ovpn --auth-user-pass auth.txt  > /dev/null 2>&1')
+                os.system(f'sudo -b openvpn --config /tmp/{conf_file}.tcp443.ovpn --auth-user-pass auth.txt > /dev/null 2>&1')
                 time_start = time.time()
                 while not ovpn_is_connected(): # wait for openvpn to connect
                     if time.time() - time_start > 30: break # timeout
